@@ -1,254 +1,125 @@
-# Beijing Multi-Site Air Quality — Classification + Regression + Time Series (ARIMA)
+# 🌏 Dự Án: "Bắt Mạch" Nhịp Thở Đô Thị - Dự Báo Bụi Mịn PM2.5 Tại Bắc Kinh (SARIMA)
 
-Phân tích dữ liệu chất lượng không khí **Beijing Multi-Site Air Quality (12 stations)** để xây dựng một pipeline hoàn chỉnh gồm:
+![Project Banner](https://img.shields.io/badge/Project-Time_Series_Forecasting-blue?style=for-the-badge&logo=python)
+![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
+![Model](https://img.shields.io/badge/Model-SARIMA-orange?style=for-the-badge)
 
-- **Phân lớp mức độ ô nhiễm (AQI level)**: tạo nhãn từ **PM2.5 rolling 24h**, nhưng **KHÔNG dùng PM2.5** trong tập đặc trưng đầu vào (tránh leakage).
-- **Hồi quy (Regression)**: dự đoán **PM2.5 tương lai** theo horizon (ví dụ t+1, t+24…).
-- **Chuỗi thời gian (Time Series)**: phân tích đặc điểm dữ liệu time series “đúng bài giảng” và dự báo **chỉ dùng ARIMA** (statsmodels).
+> **"Không chỉ dự báo con số, chúng tôi dự báo nhịp điệu của thành phố."**
 
-Project triển khai theo pipeline notebook → module hoá trong `src/` → tự động chạy bằng **Papermill** để phục vụ giảng dạy & demo ra quyết định chọn mô hình.
+---
+## 👥 Thông tin Nhóm
+- **Nhóm:** WL
+- **Thành viên:** - [Nguyễn Văn Vinh]
+  - [Đỗ Văn Vinh]
+  - [Lại Thành Đoạn]
+  - [Bạch Ngọc Lương]
+## 📖 1. Giới thiệu & Đặt vấn đề
+
+[cite_start]Trong bối cảnh đô thị hóa nhanh chóng, ô nhiễm không khí—đặc biệt là **bụi mịn PM2.5**—đã trở thành mối đe dọa thầm lặng nhưng nghiêm trọng[cite: 299]. 
+
+Chúng ta thường quen với các dự báo thời tiết chung chung như "Ngày mai trời nắng". Tuy nhiên, với chất lượng không khí, biết mức trung bình của ngày mai là **chưa đủ**. Nồng độ bụi có thể ở mức an toàn vào buổi trưa nhưng tăng vọt lên mức nguy hại vào giờ tan tầm hoặc đêm khuya do hiện tượng nghịch nhiệt. [cite_start]Nếu chỉ nhìn vào số liệu hiện tại hoặc áp dụng ngưỡng cảnh báo tĩnh, nhà quản lý sẽ bỏ lỡ các đợt ô nhiễm tăng vọt theo giờ[cite: 300].
+
+**Mục tiêu dự án:**
+Dự án này tập trung giải quyết bài toán dự báo ngắn hạn (short-term forecasting) nồng độ PM2.5 theo từng giờ. [cite_start]Thay vì sử dụng mô hình ARIMA cơ bản (vốn hạn chế trong việc bắt các quy luật lặp lại), chúng tôi triển khai mô hình **SARIMA (Seasonal ARIMA)** để mô hình hóa tính chu kỳ (mùa vụ) 24 giờ của ô nhiễm, từ đó hỗ trợ ra quyết định cảnh báo sớm chính xác hơn[cite: 561].
 
 ---
 
-## Features
+## 📊 2. Dữ liệu & Công cụ
 
-### 1) Classification (No PM2.5 in features)
-- Load & merge dữ liệu từ nhiều trạm
-- Làm sạch dữ liệu: missing, kiểu thời gian, chuẩn hoá numeric/object
-- Tạo nhãn **AQI class** từ `pm25_24h` (rolling mean 24h)
-- **Không dùng PM2.5 / pm25_24h làm feature**
-- Đánh giá: Accuracy, Precision/Recall/F1, Confusion Matrix
-- Lưu artifacts: metrics + prediction sample
-
-### 2) Regression (Supervised)
-- Tạo bài toán hồi quy theo time-based split (tránh leakage)
-- Feature engineering cho hồi quy:
-  - time features (hour/day/month/…)
-  - lag features (theo cấu hình)
-- Dự đoán `PM2.5(t + horizon)`
-- Đánh giá: RMSE, MAE, R2
-- Lưu artifacts: model + metrics + prediction sample
-
-### 3) Time Series Forecasting (ARIMA only)
-- Xây dựng chuỗi đơn biến theo **1 trạm** (univariate PM2.5)
-- Phân tích đặc điểm dữ liệu chuỗi thời gian “đúng bài giảng”:
-  - missingness & resampling
-  - rolling mean/std
-  - stationarity tests (ADF/KPSS)
-  - ACF/PACF để định hướng p,q
-  - quyết định d (sai phân) theo kiểm định + quan sát
-- Fit & chọn ARIMA theo AIC/BIC (grid nhỏ)
-- Dự báo + lưu artifacts: summary, predictions, model
+* [cite_start]**Bộ dữ liệu:** Beijing Multi-Site Air Quality Data (PRSA)[cite: 406].
+* [cite_start]**Thời gian:** 01/03/2013 - 28/02/2017[cite: 307].
+* [cite_start]**Trạm quan trắc trọng tâm:** **Aotizhongxin**[cite: 549].
+* [cite_start]**Tần suất:** Hàng giờ (Hourly)[cite: 414].
+* **Công cụ kỹ thuật:**
+    * Ngôn ngữ: Python.
+    * Thư viện: `pandas`, `statsmodels`, `matplotlib`, `sklearn`.
+    * Pipeline: Preprocessing -> Stationarity Test -> ACF/PACF Analysis -> Grid Search -> Forecasting.
 
 ---
 
-## Project Structure
+## 🔍 3. Khám phá dữ liệu (EDA): Bằng chứng của "Nhịp thở" 24h
 
-```text
-air_quality_timeseries/
-├── data/
-│   ├── raw/
-│   │   └── PRSA2017_Data_20130301-20170228.zip
-│   └── processed/
-│       ├── cleaned.parquet
-│       ├── dataset_for_clf.parquet
-│       ├── metrics.json
-│       ├── predictions_sample.csv
-│       ├── dataset_for_regression.parquet
-│       ├── regressor.joblib
-│       ├── regression_metrics.json
-│       ├── regression_predictions_sample.csv
-│       ├── arima_pm25_summary.json
-│       ├── arima_pm25_predictions.csv
-│       └── arima_pm25_model.pkl
-│
-├── notebooks/
-│   ├── preprocessing_and_eda.ipynb
-│   ├── feature_preparation.ipynb
-│   ├── classification_modelling.ipynb
-│   ├── regression_modelling.ipynb
-│   ├── arima_forecasting.ipynb
-│   └── runs/
-│       ├── preprocessing_and_eda_run.ipynb
-│       ├── feature_preparation_run.ipynb
-│       ├── classification_modelling_run.ipynb
-│       ├── regression_modelling_run.ipynb
-│       └── arima_forecasting_run.ipynb
-│
-├── src/
-│   ├── classification_library.py
-│   ├── regression_library.py
-│   ├── timeseries_library.py
-│   └── __init__.py
-│
-├── run_papermill.py
-├── requirements.txt
-└── README.md
+Trước khi đi vào mô hình hóa, chúng tôi đã thực hiện Phân tích khám phá dữ liệu (EDA) để trả lời câu hỏi cốt lõi: **PM2.5 thay đổi ngẫu nhiên hay có quy luật?**
 
-```
+### 3.1. Toàn cảnh sự biến động (Overview)
+Dữ liệu PM2.5 tại Bắc Kinh cho thấy sự biến động cực mạnh. [cite_start]Các đỉnh nhọn (spikes) thường xuyên vượt ngưỡng 300-400 $\mu g/m^3$, thậm chí chạm mốc 999 $\mu g/m^3$[cite: 459]. [cite_start]Chuỗi dữ liệu mang tính **không dừng (non-stationary)** rõ rệt về phương sai và trung bình, đòi hỏi phải xử lý sai phân (differencing) trước khi huấn luyện mô hình[cite: 375].
 
-## Installation
+### 3.2. Soi chi tiết (Zoom-in Analysis)
+Khi phóng to vào khung thời gian ngắn (1 tháng), quy luật vận động bắt đầu lộ diện. Các đường biểu đồ không đi ngẫu nhiên mà có dạng sóng lên xuống nhịp nhàng:
+* **Ban đêm/Sáng sớm:** Bụi thường tích tụ cao.
+* **Buổi chiều:** Nồng độ giảm xuống (do nhiệt độ tăng, không khí đối lưu tốt hơn).
+[cite_start]Đây là dấu hiệu sơ khởi của **Mùa vụ trong ngày (Daily Seasonality)**[cite: 507].
 
-```bash
-git clone <your_repo_url>
-cd air_quality_timeseries
-pip install -r requirements.txt
-```
+### 3.3. Bằng chứng thép từ biểu đồ Tự tương quan (ACF)
+Để khẳng định khoa học, chúng tôi sử dụng biểu đồ ACF (Auto-Correlation Function). Kết quả cho thấy:
+* Các cột tương quan **không tắt dần đều**.
+* [cite_start]Xuất hiện các đỉnh nhọn (peaks) lặp lại đều đặn ở các độ trễ (lags): **24, 48, 72, 96...**[cite: 562].
 
-## Data Preparation
+👉 **Kết luận:** Giá trị PM2.5 tại thời điểm $t$ có mối liên hệ mật thiết với chính nó tại $t-24$, $t-48$. [cite_start]Do đó, tham số chu kỳ mùa vụ **$s=24$** là bắt buộc[cite: 563].
 
-Đặt file gốc vào:
-```
+---
 
-```bash
-data/raw/PRSA2017_Data_20130301-20170228.zip
-```
-Hoặc tải dataset Beijing Multi-Site Air Quality Data (UCI) và đặt các file trạm vào:
+## 🛠 4. Phương pháp luận: Từ ARIMA đến SARIMA
 
-```bash 
-data/raw/
-```
-Ví dụ
+### Tại sao ARIMA là chưa đủ?
+Mô hình ARIMA truyền thống $(p,d,q)$ hoạt động tốt với xu hướng ngắn hạn nhưng "mù" trước các quy luật lặp lại dài hạn. Nếu dùng ARIMA, đường dự báo thường có xu hướng đi phẳng về giá trị trung bình sau vài bước thời gian, làm mất đi thông tin về các đỉnh ô nhiễm trong ngày.
 
-```bash
-data/raw/station_01.csv
-data/raw/station_02.csv
-...
-data/raw/station_12.csv
-```
+### Giải pháp: SARIMA $(p,d,q) \times (P,D,Q,s)$
+Chúng tôi thiết lập cấu hình mô hình như sau:
 
-File output sẽ được sinh tự động vào:
-```bash
-data/processed/
-```
+| Thành phần | Tham số | Giải thích chi tiết |
+| :--- | :---: | :--- |
+| **Trend Order** | `(1, 0, 1)` | **p=1, q=1**: Nắm bắt mối quan hệ tức thời giữa các giờ liền kề. **d=0**: Chuỗi đã được xử lý để đạt tính dừng tương đối. |
+| **Seasonal Order** | `(0, 1, 1, 24)` | [cite_start]**s=24**: Chu kỳ mùa vụ 24 giờ (Daily cycle) [cite: 563][cite_start].<br>**D=1**: Thực hiện sai phân mùa vụ (Seasonal Differencing: $Y_t - Y_{t-24}$) để loại bỏ sự phụ thuộc chu kỳ, giúp chuỗi trở nên dừng[cite: 564].<br>**Q=1**: Xử lý sai số trung bình trượt ở cấp độ mùa vụ. |
 
+---
 
+## 📈 5. Kết quả & Đánh giá hiệu suất
 
-Run Pipeline (Recommended)
-Chạy toàn bộ phân tích chỉ với 1 lệnh:
+Mô hình được huấn luyện trên dữ liệu 2013-2016 và kiểm thử (test) trên dữ liệu từ **01/01/2017** với đường chân trời dự báo (horizon) là **48 giờ**.
 
-```bash
-python run_papermill.py
-```
-Kết quả sinh ra:
+### Trực quan hóa: Forecast vs Actual
+Đường dự báo của SARIMA (màu đỏ) đã mô phỏng lại khá tốt "nhịp điệu" lên xuống của đường thực tế (màu đen). Khác với đường trung bình đi ngang, SARIMA đã "học" được cách uốn lượn: **tăng vào đêm, giảm vào ngày**.
 
-```bash
-data/processed/cleaned.parquet
-data/processed/dataset_for_clf.parquet
-data/processed/metrics.json
-data/processed/predictions_sample.csv
+### Bảng chỉ số đánh giá (Metrics)
 
-data/processed/dataset_for_regression.parquet
-data/processed/regressor.joblib
-data/processed/regression_metrics.json
-data/processed/regression_predictions_sample.csv
+| Metric | Giá trị | Ý nghĩa thực tiễn |
+| :--- | :--- | :--- |
+| **RMSE** | **~35.5** | (Root Mean Squared Error) [cite_start]Chỉ số này khá cao, phản ánh việc mô hình bị "phạt nặng" khi dự báo sai các điểm đỉnh (spikes) đột biến[cite: 401]. |
+| **MAE** | **~22.1** | (Mean Absolute Error) Sai số tuyệt đối trung bình. [cite_start]Trung bình mỗi giờ, dự báo lệch khoảng 22 $\mu g/m^3$ so với thực tế[cite: 399]. |
 
-data/processed/arima_pm25_summary.json
-data/processed/arima_pm25_predictions.csv
-data/processed/arima_pm25_model.pkl
+---
 
-notebooks/runs/arima_forecasting_run.ipynb
-```
+## 💡 6. Năm (5) Insight Quản trị & Khuyến nghị Hành động
 
-### Changing Parameters
-Các tham số có thể chỉnh trong run_papermill.py:
+Từ kết quả kỹ thuật, chúng tôi rút ra 5 đề xuất chiến lược dành cho **Cơ quan Quản lý Môi trường Đô thị**:
 
-#### Preprocessing/EDA
-```python
-USE_UCIMLREPO = False
-RAW_ZIP_PATH = "data/raw/PRSA2017_Data_20130301-20170228.zip"
-LAG_HOURS = [1, 3, 24]
-```
+1.  **Quy luật 24h là bất biến:**
+    * *Insight:* Dù mùa đông hay hè, ô nhiễm luôn tuân theo chu kỳ ngày đêm.
+    * [cite_start]*Hành động:* Thay vì phát bản tin 1 lần/ngày, cần triển khai hệ thống **biển báo điện tử thời gian thực**: Cảnh báo Đỏ (7h-9h), chuyển sang Vàng (14h-16h) dựa trên dự báo giờ[cite: 304].
 
-#### Classification
-```python
-CUTOFF = "2017-01-01"   # time-based split
-# (PM2.5 bị loại khỏi features trong library để tránh leakage)
-```
+2.  **Thách thức từ các "Đỉnh ô nhiễm" (Spikes):**
+    * [cite_start]*Insight:* RMSE cao hơn MAE chứng tỏ mô hình đôi khi vẫn bị "giật mình" bởi các đợt tăng cực đại bất thường[cite: 558].
+    * *Hành động:* Thiết lập quy trình **Phản ứng nhanh**: Khi đường dự báo SARIMA có xu hướng dốc đứng, kích hoạt ngay kịch bản hạn chế giao thông cục bộ mà không cần đợi chỉ số đạt đỉnh thực tế.
 
-#### Regression
-```python
-HORIZON = 1                       # dự đoán PM2.5(t + HORIZON)
-TARGET_COL = "PM2.5"
-OUTPUT_REG_DATASET_PATH = "data/processed/dataset_for_regression.parquet"
-CUTOFF = "2017-01-01"
-MODEL_OUT = "regressor.joblib"
-METRICS_OUT = "regression_metrics.json"
-PRED_SAMPLE_OUT = "regression_predictions_sample.csv"
-```
+3.  **Ưu thế "Nhịp điệu" của SARIMA:**
+    * *Insight:* SARIMA giữ được biên độ dao động tốt hơn ARIMA (vốn hay bị mean reversion - kéo về trung bình).
+    * *Hành động:* Sử dụng SARIMA làm mô hình nòng cốt cho các ứng dụng điều tiết giao thông ngắn hạn (trong vòng 48h).
 
-#### ARIMA 
-```
-STATION = "Aotizhongxin"
-VALUE_COL = "PM2.5"
-CUTOFF = "2017-01-01"
+4.  **Giới hạn của dữ liệu quá khứ:**
+    * *Insight:* SARIMA chỉ nhìn vào lịch sử PM2.5. Nó sẽ thất bại nếu có một cơn mưa rào bất chợt (yếu tố ngoại sinh) làm sạch không khí ngay lập tức.
+    * [cite_start]*Hành động:* Nâng cấp hệ thống lên **SARIMAX**, tích hợp thêm biến đầu vào: *Tốc độ gió (WSPM)* và *Lượng mưa (RAIN)* để tăng độ chính xác khi thời tiết biến động[cite: 566].
 
-P_MAX = 3
-Q_MAX = 3
-D_MAX = 2
-IC = "aic"                         # hoặc "bic"
-ARTIFACTS_PREFIX = "arima_pm25"
-```
+5.  **Tối ưu hóa nguồn lực nhân sự:**
+    * *Insight:* Chúng ta biết trước các khung giờ "nóng" nhờ chu kỳ dự báo.
+    * [cite_start]*Hành động:* Phân bổ Cảnh sát giao thông và Đội kiểm tra khí thải tập trung vào các giờ cao điểm dự báo, giảm bớt nhân sự vào giờ thấp điểm để tiết kiệm ngân sách[cite: 306].
 
+---
 
-Hoặc sửa trong cell PARAMETERS của mỗi notebook để chạy với cấu hình khác nhau.
+## 🏁 7. Kết luận
 
-### Visualization & Results
+Dự án đã chứng minh rằng việc tích hợp yếu tố mùa vụ ($s=24$) thông qua mô hình **SARIMA** là bước tiến quan trọng so với các phương pháp thống kê cơ bản.
 
-Notebook preprocessing_and_eda.ipynb:
+[cite_start]SARIMA không chỉ là những con số toán học khô khan, mà là công cụ giúp chúng ta **"lắng nghe nhịp thở của thành phố"**, từ đó chuyển đổi dữ liệu thô thành các hành động bảo vệ sức khỏe cộng đồng kịp thời và hiệu quả hơn[cite: 524].
 
-  kiểm tra missingness, phân phối, xu hướng theo thời gian
-
-  gợi ý seasonality (24h, tuần) để định hướng mô hình
-
-Notebook regression_modelling.ipynb:
-
-  dự đoán PM2.5(t+h), đánh giá RMSE/MAE/R2, minh hoạ leakage và lý do time-split
-
-Notebook arima_forecasting.ipynb:
-
-  ADF/KPSS, rolling mean/std, ACF/PACF
-
-  chọn (p,d,q) theo AIC/BIC và dự báo ARIMA
-
-Bạn có thể export notebook chạy ra HTML:
-
-```bash
-jupyter nbconvert notebooks/runs/03_classification_modelling_run.ipynb --to html
-```
-
-## Ứng dụng thực tế 
-
-Thiết kế bài giảng “end-to-end”:
-
-  phân lớp mức độ ô nhiễm (classification) + chống leakage
-
-  hồi quy dự đoán chỉ số PM2.5 tương lai (regression)
-
-  phân tích chuỗi thời gian và quyết định dùng ARIMA (time series)
-
-Demo ra quyết định mô hình dựa trên:
-
-  stationarity (ADF/KPSS), ACF/PACF
-
-  tiêu chí IC (AIC/BIC) và kiểm tra sai số dự báo
-
-### Tech Stack
-
-| Công nghệ | Mục đích |
-|----------|----------|
-| Python | Ngôn ngữ chính |
-| Pandas | Xử lý dữ liệu transaction |
-| Scikit-learn | Modelling & metrics |
-| Statsmodels  | ARIMA               |
-| Papermill | Chạy pipeline notebook tự động |
-| Matplotlib & Seaborn | Visualization biểu đồ tĩnh |
-| Plotly | Dashboard / biểu đồ tương tác |
-| Jupyter Notebook | Môi trường notebook |
-
-### Author
-Project được thực hiện bởi:
-Trang Le
-
-### License
-MIT — sử dụng tự do cho nghiên cứu, học thuật và ứng dụng nội bộ.
+---
