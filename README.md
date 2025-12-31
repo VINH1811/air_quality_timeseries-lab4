@@ -41,6 +41,49 @@ Chúng ta thường quen với các dự báo thời tiết chung chung như "Ng
 
 **🎯 Mục tiêu dự án:**
 Dự án tập trung giải quyết bài toán dự báo ngắn hạn (short-term forecasting) nồng độ PM2.5 theo từng giờ. Thay vì chỉ sử dụng các mô hình ARIMA cơ bản, chúng tôi triển khai mô hình **SARIMA (Seasonal ARIMA)** để mô hình hóa tính chu kỳ (mùa vụ) 24 giờ của ô nhiễm, từ đó hỗ trợ ra quyết định cảnh báo sớm chính xác hơn.
+## 🧠 Phân Tích Cơ Sở: Hồi Quy Tuyến Tính 
+
+Trước khi đi vào các mô hình phức tạp, chúng tôi thiết lập một mức chuẩn (baseline) bằng mô hình hồi quy. Tại đây, chúng tôi giải quyết 3 vấn đề cốt lõi:
+
+### Tại sao "Lag 24h" là đặc trưng quan trọng nhất?
+Trong quá trình huấn luyện, đặc trưng `PM2.5_lag24` (giá trị PM2.5 của đúng giờ này ngày hôm qua) luôn có độ quan trọng cao nhất.
+* **Giải thích:** Hoạt động của con người và tự nhiên tuân theo **nhịp sinh học 24 giờ**. Giờ cao điểm sáng hôm nay (7h) sẽ tắc đường giống 7h sáng hôm qua; nhiệt độ lúc 2h đêm nay sẽ thấp tương tự 2h đêm qua.
+* **Ý nghĩa:** Quá khứ gần nhất (1 giờ trước) rất quan trọng, nhưng quá khứ cùng kỳ (24 giờ trước) mới là thước đo chuẩn xác cho xu hướng trong ngày.
+
+### Chiến lược chia dữ liệu: Tại sao phải dùng Cutoff?
+Chúng tôi sử dụng mốc thời gian cố định (**Cutoff Date:** `01/01/2017`) để chia tập Train và Test.
+* **Lý do:** Tuyệt đối tránh **Data Leakage (Rò rỉ dữ liệu)**. Nếu chia ngẫu nhiên (Shuffle), mô hình sẽ "nhìn trộm" tương lai (dùng dữ liệu tháng 2 để dự đoán tháng 1). Trong thực tế triển khai, chúng ta không bao giờ có số liệu của ngày mai.
+* **Nguyên tắc:** Train ở Quá khứ → Test ở Tương lai.
+
+### Cuộc chiến giữa các chỉ số: RMSE vs MAE
+Khi đánh giá sai số, chúng tôi nhận thấy `RMSE` (Root Mean Squared Error) thường cao hơn nhiều so với `MAE` (Mean Absolute Error).
+* **Tại sao:** Dữ liệu PM2.5 có đặc tính xuất hiện các **đỉnh nhọn (spikes)** ô nhiễm cực cao (có khi lên tới 500-800 $\mu g/m^3$).
+* **Bản chất:** MAE đối xử công bằng với mọi sai số. Ngược lại, RMSE **bình phương sai số** trước khi tính trung bình, nghĩa là nó "trừng phạt" rất nặng các lần dự báo sai ở những đỉnh spike này.
+* **Kết luận:** RMSE cao phản ánh việc mô hình chưa bắt kịp các biến động cực đoan của thời tiết.
+
+---
+
+## ⚙️ Quy Trình Ra Quyết Định ARIMA 
+
+Chuyển sang mô hình chuỗi thời gian thuần túy, chúng tôi không chọn tham số ngẫu nhiên mà tuân thủ quy trình 5 bước khoa học:
+
+1.  **Nhận diện xu hướng (Trend & Seasonality):**
+    Quan sát biểu đồ chuỗi gốc và trung bình trượt (rolling mean) để xem dữ liệu có xu hướng tăng/giảm hay dao động quanh một mức cố định.
+
+2.  **Kiểm định tính dừng (Stationarity) để chọn $d$:**
+    Sử dụng kiểm định **ADF (Augmented Dickey-Fuller)**.
+    * Nếu p-value > 0.05 (Chưa dừng) → Thực hiện sai phân bậc 1 ($d=1$).
+    * Tiếp tục kiểm tra cho đến khi chuỗi dừng để đảm bảo mô hình ổn định.
+
+3.  **Khoanh vùng tham số $p, q$ bằng ACF/PACF:**
+    * **PACF:** Dùng để xác định bậc tự hồi quy ($p$). Nếu cắt cụt sau lag $k$, chọn $p \approx k$.
+    * **ACF:** Dùng để xác định bậc trung bình trượt ($q$). Nếu cắt cụt sau lag $j$, chọn $q \approx j$.
+
+4.  **Tối ưu hóa bằng Grid Search (AIC/BIC):**
+    Vì việc nhìn biểu đồ mang tính chủ quan, chúng tôi chạy thuật toán **Grid Search** để thử các tổ hợp $(p,d,q)$ lân cận. Mô hình được chọn là mô hình có chỉ số **AIC (Akaike Information Criterion) thấp nhất** – đại diện cho sự cân bằng tốt nhất giữa độ chính xác và độ đơn giản.
+
+5.  **Chẩn đoán phần dư (Residual Diagnostics):**
+    Cuối cùng, kiểm tra phần dư của mô hình. Nếu phần dư là **White Noise** (nhiễu trắng: ngẫu nhiên, trung bình = 0, không tự tương quan), mô hình đã khai thác hết thông tin có thể.
 
 ---
 
