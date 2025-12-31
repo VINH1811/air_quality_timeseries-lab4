@@ -67,7 +67,7 @@ Trước khi mô hình hóa, chúng tôi thực hiện EDA để trả lời câ
 ### 3.1. Toàn cảnh sự biến động (Overview)
 Dữ liệu PM2.5 tại Bắc Kinh biến động cực mạnh. Các đỉnh nhọn (spikes) thường xuyên vượt ngưỡng 300-400 $\mu g/m^3$, thậm chí chạm mốc 999 $\mu g/m^3$. Chuỗi dữ liệu mang tính **không dừng (non-stationary)** rõ rệt, đòi hỏi xử lý sai phân.
 
-![Overview Plot](images/hinh1_overview.png)
+![Overview Plot](images/hinh1.2.png)
 *(Hình 1: Biến động PM2.5 toàn giai đoạn 2013-2017)*
 
 ### 3.2. Soi chi tiết (Zoom-in Analysis)
@@ -76,7 +76,7 @@ Khi phóng to vào khung thời gian ngắn (1 tháng), quy luật vận động
 * **Buổi chiều:** Nồng độ giảm (do nhiệt độ tăng, đối lưu không khí tốt).
 Đây là dấu hiệu của **Mùa vụ trong ngày (Daily Seasonality)**.
 
-![Zoom Plot](images/hinh2_zoom.png)
+![Zoom Plot](images/hinh1.png)
 *(Hình 2: Chi tiết biến động trong 1 tháng)*
 
 ### 3.3. Bằng chứng thép từ ACF (Autocorrelation)
@@ -84,7 +84,7 @@ Biểu đồ ACF cho thấy các cột tương quan **không tắt dần đều*
 
 👉 **Kết luận:** Giá trị PM2.5 tại thời điểm $t$ có mối liên hệ mật thiết với chính nó tại $t-24$. Do đó, tham số chu kỳ mùa vụ **$s=24$** là bắt buộc.
 
-![ACF Plot](images/hinh3_acf.png)
+![ACF Plot](images/hinh3.png)
 *(Hình 3: ACF Plot khẳng định chu kỳ 24h)*
 
 ---
@@ -121,7 +121,7 @@ Mô hình được kiểm thử trên tập Test (từ 01/01/2017) với Horizon
 ### Trực quan hóa: Forecast vs Actual
 Đường dự báo của SARIMA (màu đỏ) đã mô phỏng lại khá tốt "nhịp điệu" lên xuống của đường thực tế (màu đen). Khác với đường trung bình đi ngang, SARIMA đã "học" được cách uốn lượn: **tăng vào đêm, giảm vào ngày**.
 
-![Forecast Plot](images/hinh4_forecast.png)
+![Forecast Plot](images/hinh4.png)
 *(Hình 4: Kết quả dự báo SARIMA so với thực tế)*
 
 ### Bảng chỉ số đánh giá (Metrics)
