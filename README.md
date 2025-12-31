@@ -26,7 +26,7 @@
 3. [Phân tích Dữ liệu (EDA)](#-3-khám-phá-dữ-liệu-eda-bằng-chứng-của-nhịp-thở-24h)
 4. [Phương pháp luận & Mô hình hóa](#-4-phương-pháp-luận--mô-hình-hóa)
     * [Baseline: Hồi quy (Regression)](#41-chiến-lược-1-hồi-quy-tuyến-tính-baseline)
-    * * [Advanced: SARIMA](#42-chiến-lược-2-sarima---mô-hình-hóa-mùa-vụ-main-approach)
+    * [Advanced: SARIMA](#42-chiến-lược-2-sarima---mô-hình-hóa-mùa-vụ-main-approach)
 5. [Kết quả & Đánh giá](#-5-kết-quả--đánh-giá-hiệu-suất)
 6. [Insight Quản trị & Khuyến nghị](#-6-năm-5-insight-quản-trị--khuyến-nghị-hành-động)
 7. [Hướng dẫn Cài đặt & Chạy](#-7-hướng-dẫn-cài-đặt--chạy-dự-án)
